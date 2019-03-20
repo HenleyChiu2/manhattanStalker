@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -18,7 +17,7 @@ float dr_fwd_till_obstacle(volatile int * ULTRA0_ptr, volatile int * PWM0_ptr, v
 float dr_bwd_till_obstacle(volatile int * ULTRA2_ptr, volatile int * PWM0_ptr, volatile int * PWM1_ptr);
 void tr_left90(volatile int * PWM0_ptr, volatile int * PWM1_ptr);
 void tr_right90(volatile int * PWM0_ptr, volatile int * PWM1_ptr);
-/* This program increments the contents of the red LED parallel port */
+
 int main(void)
 {
     volatile int * PWM0_ptr;   // virtual address pointer to servopwm0
@@ -30,7 +29,7 @@ int main(void)
 
     int fd = -1;               // used to open /dev/mem for access to physical addresses
     void *LW_virtual;          // used to map physical addresses for the light-weight bridge
-    
+
     // Create virtual memory access to the FPGA light-weight bridge
     if ((fd = open_physical (fd)) == -1)
        return (-1);
@@ -39,15 +38,14 @@ int main(void)
 
     // Set virtual address pointer to I/O port
     PWM0_ptr = (unsigned int *) (LW_virtual + PWM0_BASE);
-  
     PWM1_ptr = (unsigned int *) (LW_virtual + PWM1_BASE);
-    
+	
     ULTRA0_ptr = (unsigned int *) (LW_virtual + ULTRA0_BASE);   // fonrt sensor
     ULTRA1_ptr = (unsigned int *) (LW_virtual + ULTRA1_BASE);   // right sensor
     ULTRA2_ptr = (unsigned int *) (LW_virtual + ULTRA2_BASE);   // rear sensor
     ULTRA3_ptr = (unsigned int *) (LW_virtual + ULTRA3_BASE);   // left sensor
 
-    // X is the horizontal axis, Y is the vertical axis. Let our primary goal be to move the robot FORWARD by a certain distance
+    // X is the horizontal axis, Y is the vertical axis. Let our primary goal be to move the robot FORWARD by a cerdistance
     float distanceInX = 200;
     float distanceInY = 0;
     float distanceDriven = 0;
@@ -60,21 +58,21 @@ int main(void)
     rear/2 ---------------|--------------- X front/0
                           |
                           |
-                          |			
+                          |
                         right/1
     */
     // allow some error
-    while(abs(distanceInX) > 15 || abs(distanceInY) > 15) {	
+    while(abs(distanceInX) > 15 || abs(distanceInY) > 15) {
         printf("distanceInX: %f, distanceInY: %f\n", distanceInX, distanceInY);
-	// prioritize the direction
+        // prioritize the direction
         if ( abs(distanceInX) > abs(distanceInY) ) {
-	    // sensor feedback low: no obstacle, hight: obstacle sensed
+            // sensor feedback low: no obstacle, hight: obstacle sensed
             // check if front is clear
             printf("test1\n");
-	    if ( *ULTRA0_ptr == 0 ) {
+            if ( *ULTRA0_ptr == 0 ) {
                 printf("test2, X: %f, Y: %f\n", distanceInX, distanceInY);
                 // more to go, target in +X direction
-			 if ( distanceInX > 0 ) {
+                if ( distanceInX > 0 ) {
                     printf("test3, dir: %d, ultra3: %d\n", facingDir, *ULTRA3_ptr);
                     if ( facingDir == Right && *ULTRA3_ptr == 0 ) {
                         tr_left90(PWM0_ptr, PWM1_ptr);
@@ -104,25 +102,23 @@ int main(void)
                 }
                 // drive forward till obstacle is encountered or the max time threshold is reached, report the distance traveled
                 distanceDriven = dr_fwd_till_obstacle(ULTRA0_ptr, PWM0_ptr, PWM1_ptr);
-                //printf("enter switch, distanceDriven: %f, facingDir: %d\n", distanceDriven, facingDir);
                 // Update distances accordingly
                 switch (facingDir) {
-                    case Front: 
-			distanceInX -= distanceDriven; printf("Facing: F\n");
-			break;
-                    case Right: 
-			distanceInY -= distanceDriven; printf("Facing: R\n");
-			break;
-                    case Back: 
-			distanceInX += distanceDriven; printf("Facing: B\n");
-			break;
-                    case Left: 
-			distanceInY += distanceDriven; printf("Facing: L\n");
-			break;
-                    default: printf("Error: Illegal facing direction"); 
-			return 1;
+                    case Front:
+                        distanceInX -= distanceDriven; printf("Facing: F\n");
+                        break;
+                    case Right:
+                        distanceInY -= distanceDriven; printf("Facing: R\n");
+                        break;
+                    case Back:
+                        distanceInX += distanceDriven; printf("Facing: B\n");
+                        break;
+                    case Left:
+                        distanceInY += distanceDriven; printf("Facing: L\n");
+                        break;
+                    default: printf("Error: Illegal facing direction");
+                        return 1;
                 }
-                printf("exit switch\n");
             // obstacle detected in front, check if right side is clear
             } else if ( *ULTRA1_ptr == 0 ) {
                 tr_right90(PWM0_ptr, PWM1_ptr);
@@ -132,7 +128,7 @@ int main(void)
                     facingDir = Front;
                 } else if ( facingDir > Left + 1 ) {
                     printf("Facing direction out of highest range");
-                    return 1; 
+                    return 1;
                 }
             // obstacle detected in front & right, check if left side is clear
             } else if ( *ULTRA3_ptr == 0 ) {
@@ -148,35 +144,35 @@ int main(void)
             // obstacle detected in front & right & left, check if rear side is clear
             } else if ( *ULTRA2_ptr == 0 ) {
                 // drive backward till obstacle is encountered or the max time threshold is reached, report the distance traveled
-          	distanceDriven = dr_bwd_till_obstacle(ULTRA2_ptr, PWM0_ptr, PWM1_ptr);
+                distanceDriven = dr_bwd_till_obstacle(ULTRA2_ptr, PWM0_ptr, PWM1_ptr);
                 // Update distances accordingly
                 switch (facingDir) {
-                    case Front: 
-			distanceInX += distanceDriven; printf("Facing: F\n");
-			break;
-                    case Right: 
-			distanceInY += distanceDriven; printf("Facing: R\n");
-			break;
-                    case Back: 
-			distanceInX -= distanceDriven; printf("Facing: B\n");
-			break;
-                    case Left: 
-			distanceInY -= distanceDriven; printf("Facing: L\n");
-			break;
-                    default: printf("Error: Illegal facing direction"); 
-			return 1;
+                    case Front:
+                        distanceInX += distanceDriven; printf("Facing: F\n");
+                        break;
+                    case Right:
+                        distanceInY += distanceDriven; printf("Facing: R\n");
+                        break;
+                    case Back:
+                        distanceInX -= distanceDriven; printf("Facing: B\n");
+                        break;
+                    case Left:
+                        distanceInY -= distanceDriven; printf("Facing: L\n");
+                        break;
+                    default: printf("Error: Illegal facing direction");
+                        return 1;
                 }
             // surrounded by obstacles
             } else {
                 printf("Surrounded by obstacles, SOS");
                 return 2;
-            } 
+            }
         // prioritize the direction
         } else {
-	    /* sensor feedback low: no obstacle, hight: obstacle sensed */
-	    if ( *ULTRA0_ptr == 0 ) {
+            /* sensor feedback low: no obstacle, hight: obstacle sensed */
+            if ( *ULTRA0_ptr == 0 ) {
                 // target in +Y direction
-		if ( distanceInY > 0 ) {
+                if ( distanceInY > 0 ) {
                     if ( facingDir == Front && *ULTRA1_ptr == 0 ) {
                         tr_right90(PWM0_ptr, PWM1_ptr);
                         facingDir = Right;
@@ -206,20 +202,20 @@ int main(void)
                 distanceDriven = dr_fwd_till_obstacle(ULTRA0_ptr, PWM0_ptr, PWM1_ptr);
                 // Update distances accordingly
                 switch (facingDir) {
-                    case Front: 
-			distanceInX -= distanceDriven; printf("Facing: F\n");
-			break;
-                    case Right: 
-			distanceInY -= distanceDriven; printf("Facing: R\n");
-			break;
-                    case Back: 
-			distanceInX += distanceDriven; printf("Facing: B\n");
-			break;
-                    case Left: 
-			distanceInY += distanceDriven; printf("Facing: L\n");
-			break;
-                    default: printf("Error: Illegal facing direction"); 
-			return 1;
+                    case Front:
+                        distanceInX -= distanceDriven; printf("Facing: F\n");
+                        break;
+                    case Right:
+                        distanceInY -= distanceDriven; printf("Facing: R\n");
+                        break;
+                    case Back:
+                        distanceInX += distanceDriven; printf("Facing: B\n");
+                        break;
+                    case Left:
+                        distanceInY += distanceDriven; printf("Facing: L\n");
+                        break;
+                    default: printf("Error: Illegal facing direction");
+                        return 1;
                 }
             // obstacle detected in front, check if right side is clear
             } else if ( *ULTRA1_ptr == 0 ) {
@@ -230,7 +226,7 @@ int main(void)
                     facingDir = Front;
                 } else if ( facingDir > Left + 1 ) {
                     printf("Facing direction out of highest range");
-                    return 1; 
+                    return 1;
                 }
             // obstacle detected in front & right, check if left side is clear
             } else if ( *ULTRA3_ptr == 0 ) {
@@ -249,34 +245,33 @@ int main(void)
                 distanceDriven = dr_bwd_till_obstacle(ULTRA2_ptr, PWM0_ptr, PWM1_ptr);
                 // Update distances accordingly
                 switch (facingDir) {
-                    case Front: 
-			distanceInX += distanceDriven; printf("Facing: F\n");
-			break;
-                    case Right: 
-			distanceInY += distanceDriven; printf("Facing: R\n");
-			break;
-                    case Back: 
-			distanceInX -= distanceDriven; printf("Facing: B\n");
-			break;
-                    case Left: 
-			distanceInY -= distanceDriven; printf("Facing: L\n");
-			break;
-                    default: printf("Error: Illegal facing direction"); 
-			return 1;
+                    case Front:
+                        distanceInX += distanceDriven; printf("Facing: F\n");
+                        break;
+                    case Right:
+                        distanceInY += distanceDriven; printf("Facing: R\n");
+                        break;
+                    case Back:
+                        distanceInX -= distanceDriven; printf("Facing: B\n");
+                        break;
+                    case Left:
+                        distanceInY -= distanceDriven; printf("Facing: L\n");
+                        break;
+                    default: printf("Error: Illegal facing direction");
+                        return 1;
                 }
             // surrounded by obstacles
             } else {
                 printf("Surrounded by obstacles, SOS");
                 return 2;
-            } 
+            }
         }
     }
- 
+
     unmap_physical (LW_virtual, LW_BRIDGE_SPAN);   // release the physical-memory mapping
     close_physical (fd);   // close /dev/mem
     return 0;
 }
-
 
 void dr_fwd_preset(volatile int * PWM0_ptr, volatile int * PWM1_ptr)
 {
@@ -287,12 +282,10 @@ void dr_fwd_preset(volatile int * PWM0_ptr, volatile int * PWM1_ptr)
     *PWM1_ptr = 150000;
 }
 
-// TO-DO: need to add a timer or some sort to reflect the distance traveled
-// need to return the distance.
 float dr_fwd_till_obstacle(volatile int * ULTRA0_ptr, volatile int * PWM0_ptr, volatile int * PWM1_ptr) {
     time_t start, present;
     float elapse, distanceDriven;
-    *PWM0_ptr = 200000;
+    *PWM0_ptr = 162000;
     *PWM1_ptr = 100000;
     start = clock();    // start of timer
     present = clock();  // present time
@@ -305,13 +298,11 @@ float dr_fwd_till_obstacle(volatile int * ULTRA0_ptr, volatile int * PWM0_ptr, v
     *PWM0_ptr = 150000;
     *PWM1_ptr = 150000;
 
-    distanceDriven = elapse * 15;	// speed of the robot is approx. 15 cm/s
+    distanceDriven = elapse * 15;       // speed of the robot is approx. 15 cm/s
 
-    return distanceDriven; 
+    return distanceDriven;
 }
 
-// TO-DO: need to add a timer or some sort to reflect the distance traveled
-// need to return the distance.
 float dr_bwd_till_obstacle(volatile int * ULTRA2_ptr, volatile int * PWM0_ptr, volatile int * PWM1_ptr) {
     time_t start, present;
     float elapse, distanceDriven;
@@ -328,7 +319,7 @@ float dr_bwd_till_obstacle(volatile int * ULTRA2_ptr, volatile int * PWM0_ptr, v
     *PWM0_ptr = 150000;
     *PWM1_ptr = 150000;
 
-    distanceDriven = elapse * 15;	// speed of the robot is approx. 15 cm/s
+    distanceDriven = elapse * 15;       // speed of the robot is approx. 15 cm/s
 
     return distanceDriven;
 }
