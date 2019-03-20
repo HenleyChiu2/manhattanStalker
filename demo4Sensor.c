@@ -45,7 +45,7 @@ int main(void)
     ULTRA2_ptr = (unsigned int *) (LW_virtual + ULTRA2_BASE);   // rear sensor
     ULTRA3_ptr = (unsigned int *) (LW_virtual + ULTRA3_BASE);   // left sensor
 
-    // X is the horizontal axis, Y is the vertical axis. Let our primary goal be to move the robot FORWARD by a cerdistance
+    // X is the horizontal axis, Y is the vertical axis. Let our primary goal be to move the robot FORWARD by a certain distance
     float distanceInX = 200;
     float distanceInY = 0;
     float distanceDriven = 0;
@@ -393,4 +393,3 @@ int unmap_physical(void * virtual_base, unsigned int span)
     }
     return 0;
 }
-
